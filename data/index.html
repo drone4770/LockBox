@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="de-DE">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="lockbox.css">
+    <title>LockBox</title>
+    <script src="lockbox.js"></script>
+    <meta name="viewport" content="width=660px, initial-scale=1" />
+  </head>
+  <body>
+    <H1 align="center">LockBox</H1>
+
+
+    <div style="background-color: #ddd;">
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2" style="font-size: 2vw;">
+          Mode :
+        </div>
+        <div class="col-3"></div>
+      </div>
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+          <button id="status" class="status" style="clear:left;"></button>
+        </div>
+        <div class="col-3"></div>
+      </div>
+
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+          <div id="Helptext" style="padding-top: 0px;
+                                       padding-bottom: 10px; font-size: 1.2vw;">Helptext</div>
+        </div>
+        <div class="col-3"></div>
+      </div>
+
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2" style="font-size: 2vw;">
+          Lid State :
+        </div>
+        <div class="col-3"></div>
+      </div>
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+          <button id="lidstate" class="status"></button>
+        </div>
+        <div class="col-3"></div>
+      </div>
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+          <div id="HelptextLid" style="padding-top: 0px;
+                                          padding-bottom: 10px; font-size: 1.2vw;">Helptext</div>
+        </div>
+        <div class="col-3"></div>
+      </div>
+
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2" style="font-size: 2vw;">
+          Key in Box :
+        </div>
+        <div class="col-3"></div>
+      </div>
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+          <button id="keyinbox" class="status"></button>
+        </div>
+        <div class="col-3"></div>
+      </div>
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+          <div id="HelptextKIB" style="padding-top: 0px;
+                                          padding-bottom: 10px; font-size: 1.2vw;"></div>
+        </div>
+        <div class="col-3"></div>
+      </div>
+
+
+      <div id="lockcontrols" style="display:none;">
+        <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2" style="font-size: 2vw;">
+          PIN :
+        </div>
+        <div class="col-3"></div>
+      </div>
+      <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+          <div id="HelptextPIN" style="padding-top: 0px;
+                                          padding-bottom: 10px; font-size: 1.2vw;">Write the current numeric pin in the field bellow before performing any action. You can change the pin used by the device by clicking on the button to avoid using a PIN known by the slave. Once changed, do not forget the pin since it will be the only way to open the box.</div>
+        </div>
+        <div class="col-3"></div>
+      </div>
+         <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <input id="Pin"></input>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+             <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="ChangePin" onClick="ShowChangePin()" class="stdbutton">Change Device Pin</button>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+        <div class="row" id="changePinRow" style="display: none;
+                                                     background: white;">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <div>
+              Old Pin: <input id="oldPin"></input><br />
+              New Pin: <input id="newPin"></input><br />
+              Repeat new Pin: <input id="newPin2"></input><br />
+              <button id="buttonChangePin"
+                      onClick="cancelChangePin()" class="stdbutton">Cancel</button>
+              <button id="buttonChangePin"
+                      onClick="changePin()" class="stdbutton">Set Pin</button>
+            </div>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2" style="font-size: 2vw;">
+            Controls :
+          </div>
+          <div class="col-3"></div>
+        </div>
+
+
+
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="buttonLock" class="buttonInactive"
+                    onClick="Lock()">Lock until manually unlocked</button>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="buttonOnce" class="buttonInactive"
+                    onClick="Once()">Allow one opening and relock</button>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="buttonFree" class="buttonInactive"
+                    onClick="Free()">Set Free</button>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+        <div class="row" id="timerdiv">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="timer" class="timer">00h 00min 00sec</button>
+          </div>
+
+          <div class="col-3">
+          </div>
+        </div>
+
+        <div class="row" id="rowStartTimer">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="buttonStart" class="buttonInactive"
+                    onClick="startTimer()">Start Timer to Free
+              <button id="buttonStartOnce" class="buttonInactive"
+                      onClick="startTimerOnce()">Start Timer to one opening</button>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+
+        <div class="row" id="rowChangeTimer" style="display: block;">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="buttonChangeTimer" class="buttonReset"
+                    onClick="changeTimerMode()">Change Behavior at end of timer</button>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+        <div id="pmButtons">
+          <div class="row" id="pm5min">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonMinus5" class="buttonAdd" onclick="minus5min()">-5 min</button>
+              <button id="buttonPlus5" class="buttonAdd" onclick="plus5min()">+5 min</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+
+          <div class="row" id="pm30min">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonMinus30" class="buttonAdd" onclick="minus30min()">-30 min</button>
+              <button id="buttonPlus30" class="buttonAdd" onclick="plus30min()">+30 min</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+
+
+          <div class="row" id="pm1min">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonMinus1" class="buttonAdd" onclick="minus1h()">-1 hour</button>
+              <button id="buttonPlus1" class="buttonAdd" onclick="plus1h()">+1 hour</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+
+
+          <div class="row" id="pm5min">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonMinus5" class="buttonAdd"
+                      onclick="minus5h()">-5 hours</button>
+              <button id="buttonPlus5" class="buttonAdd" onclick="plus5h()">+5 hours</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+        </div>
+
+        <div id="InitButtons">
+
+          <div class="row" id="rowAddM">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonAddM" class="buttonAdd" onclick="addMinute()">+5 min</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+          <div class="row" id="rowAdd30M">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonAdd30M" class="buttonAdd" onclick="add30Minute()">+30 min</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+          <div class="row" id="rowAddH">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonAddH" class="buttonAdd" onclick="addHour()">+1 h</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+          <div class="row" id="rowAdd5H">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonAdd5H" class="buttonAdd" onclick="add5Hours()">+5 h</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+
+          <div class="row" id="rowReset">
+            <div class="col-1"></div>
+            <div class="col-2">
+              <button id="buttonReset" class="buttonReset" onclick="resetTimer()">Reset</button>
+            </div>
+            <div class="col-3">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="lockmessage" style="display:none;">
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2" style="font-size: 2vw;">
+            Message :
+          </div>
+          <div class="col-3"></div>
+        </div>
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <div id="HelptextMSG" style="padding-top: 0px;
+                                            padding-bottom: 10px; font-size: 1.2vw;">Set a message on
+              the box display (Max 50 chars)</div>
+          </div>
+          <div class="col-3"></div>
+        </div>
+
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <input id="Message" maxlength="50"
+                   size="50"></input>
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-1"></div>
+          <div class="col-2">
+            <button id="buttonChangePin"
+                    onClick="clearMessage()" class="stdbutton">Clear Message</button>&nbsp;
+            <button id="buttonChangePin"
+                    onClick="setMessage()" class="stdbutton">Set Message</button>
+
+          </div>
+          <div class="col-3">
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- magnetic lock -->
+
+  </body>
+</html>
+<script>
+  values = {
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    settingTimer: 0,
+    interval: null,
+    intervalAlive: null,
+  };
+
+  window.onload = function() {
+    init(document);
+    runLoad();
+  };
+</script>

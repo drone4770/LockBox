@@ -1,0 +1,344 @@
+    body{
+        font-family: 'Arial', serif;
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+        overflow-y: scroll;
+        overflow-x: hidden;
+       }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    .col-1 {
+      width: 20%;
+      text-align: right;
+    }
+
+    .col-2 {
+        width: 60%;
+    }
+
+    .col-3 {
+        width: 20%;
+    }
+
+    .col-4 {
+        width: 35.5%;
+    }
+
+    .col-5 {
+        width: 24.5%;
+    }
+
+    .col-6 {
+        width: 30%;
+    }
+  .col-small {
+       width: 60%;
+       font-size: 1vw;
+       color: grey;
+       text-align: center;
+    }
+
+
+    [class*="col-"] {
+        float: left;
+        padding: 5px;
+        display: flex;
+    }
+
+    .row::after {
+        content: "";
+        clear: both;
+        display: table;
+    }
+
+
+
+    .timer, .timerHidden {
+        border: 2px;
+        border-color: black;
+        color: #3d3d3d;
+        letter-spacing: 0.05em;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 100%;
+        background-color: white;
+        font-size: 3vw;
+    }
+
+    .status {
+        border: 2px;
+        border-color: black;
+        color: #3d3d3d;
+        letter-spacing: 0.05em;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 100%;
+        background-color: white;
+        font-size: 2vw;
+    }
+
+    .emergency {
+        border: 2px;
+        border-color: black;
+        color: red;
+        letter-spacing: 0.05em;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: bold;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 100%;
+        background-color: white;
+        font-size: 7vw;
+    }
+
+
+    .locked {
+        color: red;
+    }
+
+    .warn {
+        color: orange;
+    }
+
+    .ok {
+        color: green;
+    }
+
+    .norm{
+        border: 2px;
+        border-color: black;
+        color: #3d3d3d;
+        letter-spacing: 0.05em;
+        padding: 1px 32px;
+        text-align: center;
+        text-decoration: none;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 40%;
+        background-color: white;
+        font-size: 2vw;
+        font-weight: bold !important;
+    }
+
+    .table{
+        text-align: center;
+        text-decoration: none;
+        font-size: 2vw;
+        font-weight: bold !important;
+     }
+
+    .lbl{
+   padding-right: none !important;
+   padding-left: 5px !important;
+   margin-top: 12px !important;
+   vertical-align: middle;
+   }
+
+    .lbl-2{
+   padding-right: none !important;
+   padding-left: 5px !important;
+   margin-top: 12px !important;
+   vertical-align: middle;
+   text-align: left !important;
+   width: 25% !important;
+   }
+
+      .inp{
+        color: #3d3d3d;
+        letter-spacing: 0.05em;
+        text-align: left;
+        text-decoration: none;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 40%;
+        font-size: 2vw;
+        font-weight: bold !important;
+    }
+
+    [class*="button"] {
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 2vw;
+        font-weight: bold !important;
+    }
+
+    @media screen and (max-width: 600px) {
+
+        .col-1 {
+          width: 10%;
+          text-align: right;
+        }
+
+        .col-2 {
+            width: 80%;
+        }
+
+        .col-3 {
+            width: 10%;
+        }
+
+    .col-4 {
+        width: 31.5%;
+    }
+
+    .col-5 {
+        width: 32.5%;
+    }
+
+    .col-6 {
+        width: 30%;
+    }
+    .col-small {
+       width: 80%;
+       font-size: 1vw;
+       color: grey;
+       text-align: center;
+    }
+
+        .timer {
+            font-size: 8vw;
+            padding: 0 0;
+        }
+        .timerHidden {
+            font-size: 8vw;
+            padding: 0 0;
+            color: #bbb;
+        }
+
+        [class*="button"] {
+            font-size: 3vw;
+        }
+
+       .norm{
+        font-size: 3vw;
+        }
+
+       .buttonConnect{
+       padding: 15px 0px;
+       }
+    }
+
+    .buttonStart {
+        background-color: #65d907;
+    }
+
+    .buttonConnect {
+        background-color: #65d907;
+    }
+
+    .buttonStop {
+        background-color: #ff4747;
+    }
+
+    .buttonAdd {
+        background-color: #429ef5;
+    }
+
+    .buttonReset {
+        background-color: #f2a200;
+    }
+
+    .buttonReset {
+        background-color: #f2a200;
+    }
+
+    .buttonTimerShow {
+        background-color: #dfb6e6;
+    }
+
+    .buttonTimerHide {
+        background-color: #ad4cbf;
+    }
+
+    .buttonInactive {
+        color: #cdd1d1 !important;
+        background-color: #9b9e9e !important;
+    }
+
+    .buttonWLAN {
+        background-color: #a9a9a9;
+    }
+
+    /* The switch - the box around the slider */
+   .switch {
+     position: relative;
+     display: inline-block;
+     width: 60px;
+     padding: 8px 20px;
+     margin: 4px 2px;
+   }
+
+   /* Hide default HTML checkbox */
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  /* The slider */
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+
+  input, button.stdbutton {
+    height: 40px;
+    font-size: 16px;
+    color: black;
+    padding: 2px;
+  }
+
+ input {
+    height: 30px;
+    font-size: 16px;
+ }
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
