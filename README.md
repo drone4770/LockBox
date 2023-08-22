@@ -28,3 +28,5 @@ Here you can find an example of a schema for this.
 The e-paper display is not represented, and the component may not be accurate.
 
 ![LockBox Schema](./renders/schema.png)
+
+NOTE: Using the 5v to 12v converter requires a 3A power supply, you may want to power it using 12v and have a 12v to 5v converter for the Microcontroller
