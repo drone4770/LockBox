@@ -317,6 +317,18 @@ function clearMessage() {
   e.send();
 }
 
+function startChaster() {
+  var e, t = document.getElementById("SharedLock").value;
+  e = null;
+  if (document.getElementById("SharedLockP").value == "") {
+    (e = new XMLHttpRequest).open("GET", "chasterLock?&sharedlock=" + t, !0);
+    e.send();
+  } else {
+    (e = new XMLHttpRequest).open("GET", "chasterLock?sharedlock=" + t + "&password=" + document.getElementById("SharedLockP").value, !0);
+    e.send();
+  }
+}
+
 function countDown() {
   if (0 == values.seconds && 0 == values.minutes && 0 == values.hours) {
     clearInterval(values.interval);
@@ -354,12 +366,14 @@ function getState() {
   ajaxRequest.onreadystatechange = function() {
     if (4 == ajaxRequest.readyState && (200 == ajaxRequest.status)) {
       status = 1;
-      document.getElementById("lockcontrols").style.display = "block";
-      document.getElementById("lockmessage").style.display = "block";
       values.lidstate = Number(ajaxRequest.responseText.split(";")[0]);
       values.lockstate = Number(ajaxRequest.responseText.split(";")[1]);
       values.lockstatetext = ajaxRequest.responseText.split(";")[2];
       values.keyinbox = Number(ajaxRequest.responseText.split(";")[4]);
+      values.chasterActive = Number(ajaxRequest.responseText.split(";")[6]);
+      if (values.chasterActive == 0) {
+      document.getElementById("lockcontrols").style.display = "block";
+      document.getElementById("lockmessage").style.display = "block";
       switch (values.lockstate) {
       case 0:
         document.getElementById("Helptext").innerHTML = "Box is free to open anytime.";
@@ -389,6 +403,11 @@ function getState() {
         }
         break;
 
+      }
+      } else {
+        document.getElementById(prefix + "lockcontrols").style.display = "none";
+        document.getElementById(prefix + "lockmessage").style.display = "none";
+        document.getElementById(prefix + "Helptext").innerHTML = "Box is tied to a Chaster.app lock.";
       }
       if (ajaxRequest.responseText.split(";")[3] == '' && values.settingTimer == 0) {
         values.hours = values.minutes = values.seconds  = 0;
@@ -430,7 +449,18 @@ function getState() {
           document.getElementById("HelptextKIB").innerHTML = "Slave\'s cock is locked and key is waiting in the box until Mistress sees fit.";
         }
       }
-      if (values.lockstate == 0) {
+      if (values.chasterActive == 1) {
+        document.getElementById("status").innerHTML = values.lockstatetext;
+        document.getElementById("buttonFree").disabled = !0;
+        document.getElementById("buttonOnce").disabled = !0;
+        document.getElementById("buttonLock").disabled = !0;
+        document.getElementById("timerdiv").style.display = "none";
+        document.getElementById("pmButtons").style.display = "none";
+        document.getElementById("InitButtons").style.display = "none";
+        document.getElementById("rowChangeTimer").style.display = "none";
+        document.getElementById("rowStartTimer").style.display = "none";
+        document.getElementById("chasterCtrl").style.display = "none";
+      } else if (values.lockstate == 0) {
         document.getElementById("status").innerHTML = values.lockstatetext;
         document.getElementById("status").className = "status ok";
         document.getElementById("buttonFree").className = "buttonInactive";
@@ -444,6 +474,7 @@ function getState() {
         document.getElementById("InitButtons").style.display = "block";
         document.getElementById("rowStartTimer").style.display = "block";
         document.getElementById("rowChangeTimer").style.display = "none";
+        document.getElementById("chasterCtrl").style.display = "block";
 
         if (values.interval) clearInterval(values.interval);
       } else if (values.lockstate == 1) {
@@ -460,6 +491,7 @@ function getState() {
         document.getElementById("InitButtons").style.display = "block";
         document.getElementById("rowStartTimer").style.display = "block";
         document.getElementById("rowChangeTimer").style.display = "none";
+        document.getElementById("chasterCtrl").style.display = "none";
 
         if (values.interval) clearInterval(values.interval);
 
@@ -471,6 +503,7 @@ function getState() {
         document.getElementById("buttonFree").disabled = !1;
         document.getElementById("buttonOnce").disabled = !1;
         document.getElementById("timerdiv").style.display = "block";
+        document.getElementById("chasterCtrl").style.display = "none";
         if (values.lockstate > 2) {
           document.getElementById("buttonLock").className = "buttonStart";
           document.getElementById("buttonLock").disabled = !1;
@@ -513,6 +546,7 @@ function getState() {
 
       document.getElementById("lockcontrols").style.display = "none";
       document.getElementById("lockmessage").style.display = "none";
+      document.getElementById("chasterCtrl").style.display = "none";
       status = 0;
     }
   };
@@ -530,6 +564,7 @@ function getState() {
 
     document.getElementById("lockcontrols").style.display = "none";
     document.getElementById("lockmessage").style.display = "none";
+    document.getElementById("chasterCtrl").style.display = "none";
 
     status = 0;
   }
