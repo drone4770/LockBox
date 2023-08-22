@@ -1,5 +1,8 @@
 # LockBox
 An software for creating a remotely controlled LockBox using ESP32, a solenoid lock and other sensors.
+
+Now with Chaster.app integration
+
 ![LockBox Picture](./renders/photo.jpeg)
 
 Fot this project I used:
