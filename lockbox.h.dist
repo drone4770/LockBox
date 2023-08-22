@@ -1,2 +1,10 @@
-const char* ssid     = "SSID";
-const char* password = "PASSWORD";
+#pragma once
+
+#define wifissid "Your SSID"
+#define wifipassword "Your Wifi Password"
+
+#define lockBoxChasterName "Name for chaster combination code"
+
+// These id and secret can be obtain in the developer part od Chaster.app
+#define clientId "chaster-client-id"
+#define clientSecret "chaster-client.secret"
