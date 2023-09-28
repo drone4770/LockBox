@@ -37,4 +37,6 @@ typedef struct ChasterData {
   bool extensionsAllowUnlocking = false;
   bool frozen = false;
   bool canBeUnlocked = false;
+  String verificationCode;
+  bool toVerify = false;
 } ChasterData;

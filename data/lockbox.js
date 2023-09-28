@@ -405,9 +405,9 @@ function getState() {
 
       }
       } else {
-        document.getElementById(prefix + "lockcontrols").style.display = "none";
-        document.getElementById(prefix + "lockmessage").style.display = "none";
-        document.getElementById(prefix + "Helptext").innerHTML = "Box is tied to a Chaster.app lock.";
+        document.getElementById("lockcontrols").style.display = "none";
+        document.getElementById("lockmessage").style.display = "none";
+        document.getElementById("Helptext").innerHTML = "Box is tied to a Chaster.app lock.";
       }
       if (ajaxRequest.responseText.split(";")[3] == '' && values.settingTimer == 0) {
         values.hours = values.minutes = values.seconds  = 0;

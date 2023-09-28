@@ -168,7 +168,7 @@ void startScreen () {
   epd.setCursor(2, 20);
   epd.print("LockBox");
   epd.setCursor(2, 40);
-  epd.print("v0.4");
+  epd.print("v0.5");
   epd.display();
 }
 
@@ -265,12 +265,18 @@ void changeModeDisplay() {
     epd.print("PLEASE CLOSE LID!!");
   } else if (unlockAuthorizedLed || data.canBeUnlocked) {
     epd.print("Ready to open");
+  } else if (data.toVerify) {
+    epd.print("Verification code:");
   } else if (lockMode == TIMER || lockMode == TIMERONCE) {
     epd.print(remainString() + " remaining");
   } else if (!data.canBeUnlocked && data.isLockActive) {
     epd.print(line2);
   }
-  if (!wifiConnected) {
+   if (data.toVerify) {
+    epd.setTextSize(2);
+    epd.setCursor(1, 120);
+    epd.print(data.verificationCode);
+  } else if (!wifiConnected) {
     epd.setTextSize(1);
     epd.setCursor(1, 120);
     epd.print("No WiFi");
@@ -492,7 +498,7 @@ String getStateString() {
   s+= message;
   s+= ";";
   if (data.isLockActive) {
-    s+= "1";  
+    s+= "1";
   } else {
     s += "0";
   }

@@ -29,7 +29,7 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
   currentParent = "";
   WiFiClientSecure client;
   HTTPClient http;
-  DynamicJsonDocument doc(10240);
+  DynamicJsonDocument doc(20480);
   String url = "https://api.chaster.app/locks";
 
   client.setCACert(letsencrypt_root_ca);
@@ -132,6 +132,7 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
       }
     }
     data->hygieneOpenAllowed = 0;
+    data->toVerify = false;
     if (obj.containsKey("extensions")) {
       JsonArray ea = obj["extensions"].as<JsonArray>();
       for(JsonVariant v : ea) {
@@ -147,6 +148,17 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
                 //Serial.print("openedAt: ");
                 //Serial.println(String(str));
                 data->hygieneOpenAllowed = 1;
+              }
+            }
+          } else if(String(str) == "verification-picture") {
+            JsonObject ud = ext["userData"].as<JsonObject>();
+            if(ud.containsKey("currentVerificationCode")) {
+              if (!ud["currentVerificationCode"].isNull()) {
+                const char * str = ud["currentVerificationCode"];
+                data->verificationCode = String(str);
+                if (data->verificationCode != "") {
+                  data->toVerify = true;
+                }
               }
             }
           }
@@ -243,7 +255,7 @@ String ChasterClient::newlock(ChasterData *data, ChasterAuth *auth, String share
 
   String url = "https://api.chaster.app/combinations/code";
 
-  String lbn = lockBoxChasterName;  
+  String lbn = lockBoxChasterName;
   String lockCode = this->randomString(4, true);
   String content = "{\"code\": \"" + lbn + "-" + lockCode + "\"}";
 
