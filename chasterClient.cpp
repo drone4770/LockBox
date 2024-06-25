@@ -133,6 +133,7 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
     }
     data->hygieneOpenAllowed = 0;
     data->toVerify = false;
+    data->canOpen = false;
     if (obj.containsKey("extensions")) {
       JsonArray ea = obj["extensions"].as<JsonArray>();
       for(JsonVariant v : ea) {
@@ -145,10 +146,35 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
             if(ud.containsKey("openedAt")) {
               if (!ud["openedAt"].isNull()) {
                 const char * str = ud["openedAt"];
-                //Serial.print("openedAt: ");
-                //Serial.println(String(str));
+                int yr, mnth, d, h, m, s, ms;
+                sscanf( str, "%4d-%2d-%2dT%2d:%2d:%2d.%3dZ", &yr, &mnth, &d, &h, &m, &s, &ms);
+                data->openedAtDateTime = DateTime(yr, mnth, d, h, m, s);
+                Serial.print("openedAt: ");
+                Serial.println(String(str));
                 data->hygieneOpenAllowed = 1;
+                Serial.println("Hygiene opening in action");
               }
+            }
+              if(ext.containsKey("config")) {
+                JsonObject toc = ext["config"].as<JsonObject>();
+                if (toc.containsKey("openingTime")) {
+                  data->openingTime = toc["openingTime"];
+                  //Serial.print("Hygiene opening time allowed: ");
+                  //Serial.println(data->openingTime);
+                }
+              }
+            if(ext.containsKey("nbActionsRemaining")) {
+              const int rem = ext["nbActionsRemaining"];
+              if (rem > 0) {
+                data->canOpen = true;
+                //Serial.println("Hygiene opening allowed");
+              }
+            }
+            if(ext.containsKey("_id")) {
+              const char * str = ext["_id"];
+              //Serial.print("openedAt: ");
+              //Serial.println(String(str));
+              data->tempOpenId = String(str);
             }
           } else if(String(str) == "verification-picture") {
             JsonObject ud = ext["userData"].as<JsonObject>();
@@ -173,11 +199,11 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
         if (reason.containsKey("reason")) {
           const char * str = reason["reason"];
           if (String(str) == "link_not_enough_votes") {
-              data->unlockReason += "votes ";
+            data->unlockReason += "votes ";
           } else if (String(str) == "tasks") {
-              data->unlockReason += "tasks ";
+            data->unlockReason += "tasks ";
           } else if (String(str) == "temporary-opening") {
-              data->unlockReason += "hygiene ";
+            data->unlockReason += "hygiene ";
           }
         }
       }
@@ -202,7 +228,7 @@ String ChasterClient::relock(ChasterData *data, ChasterAuth *auth) {
 
   String url = "https://api.chaster.app/combinations/code";
 
-  String lbn = lockBoxChasterName;
+    String lbn = lockBoxChasterName;
   String lockCode = this->randomString(4, true);
   String content = "{\"code\": \"" + lbn + "-" + lockCode + "\"}";
 
@@ -227,13 +253,13 @@ String ChasterClient::relock(ChasterData *data, ChasterAuth *auth) {
       http.addHeader("Content-Type", "application/json");
       httpCode = http.POST(content);
 
-       if (httpCode == 201) {
-         return lockCode;
-       } else {
-         Serial.println("Failed to lock with received combination");
-         Serial.print(http.getString());
-         return "";
-       }
+      if (httpCode == 201) {
+        return lockCode;
+      } else {
+        Serial.println("Failed to lock with received combination");
+        Serial.print(http.getString());
+        return "";
+      }
     } else {
       Serial.println("No combinationId received");
       Serial.print(http.getString());
@@ -246,8 +272,44 @@ String ChasterClient::relock(ChasterData *data, ChasterAuth *auth) {
   }
 }
 
+boolean ChasterClient::temporaryOpen(ChasterData *data, ChasterAuth *auth) {
+  if (data->canOpen) {
+    Serial.println("temporaryOpen()");
+    DynamicJsonDocument doc(2048);
+    WiFiClientSecure client;
+    HTTPClient http;
+    client.setCACert(letsencrypt_root_ca);
+
+    String url = "https://api.chaster.app/locks/" + data->lockId + "/extensions/" + data->tempOpenId + "/action";
+
+    String lbn = lockBoxChasterName;
+    String lockCode = this->randomString(4, true);
+    String content = "{\"action\": \"submit\", \"payload\": {}}";
+
+    http.useHTTP10(true);
+    http.begin(client, url);
+    http.addHeader("Authorization", "Bearer " + auth->accessToken);
+    http.addHeader("Content-Type", "application/json");
+    int httpCode = http.POST(content);
+
+    if (httpCode == 201) {
+      Serial.println("Asked for opening");
+      return true;
+    } else {
+      Serial.println("Failed to ask for opening");
+      Serial.print(http.getString());
+      return false;
+    }
+
+  } else {
+    Serial.println("Opening not allowed");
+    return false;
+  }
+}
+
+
 String ChasterClient::newlock(ChasterData *data, ChasterAuth *auth, String sharedLock, String password) {
-  Serial.println("Relock()");
+  Serial.println("newlock()");
   DynamicJsonDocument doc(2048);
   WiFiClientSecure client;
   HTTPClient http;
@@ -286,13 +348,13 @@ String ChasterClient::newlock(ChasterData *data, ChasterAuth *auth, String share
       http.addHeader("Content-Type", "application/json");
       httpCode = http.POST(content);
 
-       if (httpCode == 201) {
-         return lockCode;
-       } else {
-         Serial.println("Failed to lock with received combination");
-         Serial.print(http.getString());
-         return "";
-       }
+      if (httpCode == 201) {
+        return lockCode;
+      } else {
+        Serial.println("Failed to lock with received combination");
+        Serial.print(http.getString());
+        return "";
+      }
     } else {
       Serial.println("No combinationId received");
       Serial.print(http.getString());
@@ -306,7 +368,7 @@ String ChasterClient::newlock(ChasterData *data, ChasterAuth *auth, String share
 }
 
 
-void ChasterClient::getToken(ChasterAuth *auth, String grantType, String code) {
+int ChasterClient::getToken(ChasterAuth *auth, String grantType, String code) {
   isDataCall = false;
   DynamicJsonDocument doc(2048);
   WiFiClientSecure client;
@@ -357,6 +419,12 @@ void ChasterClient::getToken(ChasterAuth *auth, String grantType, String code) {
     auth->scope = String(str);
   }
   Serial.println("HTTP Code: " + String(httpCode));
+  if (httpCode == 400) {
+    auth->refreshToken == "";
+    return 1;
+  } else {
+    return 0;
+  }
 
 }
 

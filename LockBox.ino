@@ -26,7 +26,7 @@ Preferences preferences;
 
 
 #define COUNTDOWN 5
-#define INCREMENT 60*1000
+#define INCREMENT 60 * 1000
 
 #define BUTTON_PIN 21
 #define LID_PIN 17
@@ -35,14 +35,14 @@ Preferences preferences;
 #define DISPLAY_DEBUG 0
 
 // ESP32 settings
-#define SD_CS       14
-#define SRAM_CS     32
-#define EPD_CS      15
-#define EPD_DC      33
-#define LEDPIN      13
+#define SD_CS 14
+#define SRAM_CS 32
+#define EPD_CS 15
+#define EPD_DC 33
+#define LEDPIN 13
 
-#define EPD_RESET   -1 // can set to -1 and share with microcontroller Reset!
-#define EPD_BUSY    -1 // can set to -1 to not use a pin (will wait a fixed delay)
+#define EPD_RESET -1  // can set to -1 and share with microcontroller Reset!
+#define EPD_BUSY -1   // can set to -1 to not use a pin (will wait a fixed delay)
 
 #define FILE_NAME "/logfile.txt"
 
@@ -70,8 +70,8 @@ const GFXfont *smallfont = NULL;
 
 Adafruit_SSD1675 epd(250, 122, EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 
-unsigned long timer = 10000; // timer for screen shutdown when paused
-unsigned long timerMsg = 20000; // timer for screen shutdown when no message is received
+unsigned long timer = 10000;     // timer for screen shutdown when paused
+unsigned long timerMsg = 20000;  // timer for screen shutdown when no message is received
 
 // Set web server port number to 80
 AsyncWebServer server(80);
@@ -87,8 +87,8 @@ unsigned long lastPrint = ULONG_MAX;
 unsigned long buttonTimer = 0;
 unsigned long lastTimerChange;
 
-Bounce debouncer = Bounce(); // Instantiate a Bounce object
-Bounce debouncerLid = Bounce(); // Instantiate a Bounce object
+Bounce debouncer = Bounce();     // Instantiate a Bounce object
+Bounce debouncerLid = Bounce();  // Instantiate a Bounce object
 
 boolean unlockAuthorizedLed = false;
 boolean ledOn = false;
@@ -103,13 +103,15 @@ unsigned long lastUpdate = millis();
 boolean lidOpen = false;
 int rtcFound = 0;
 int needAdjust = 0;
-const long  gmtOffset_sec = 0;
-const int   daylightOffset_sec = 0;
-char * ntpServerValue = "pool.ntp.org";
+const long gmtOffset_sec = 0;
+const int daylightOffset_sec = 0;
+char *ntpServerValue = "pool.ntp.org";
 uint8_t lasthour = 0;
 uint8_t lastminute = 0;
 uint8_t lastsecond = 0;
 uint8_t lastminutedisplayed = 0;
+bool lastToVerify = false;
+uint16_t lastHygieneOpenAllowed = 0;
 String message = "";
 String chasterLock = "";
 ChasterAuth auth;
@@ -117,12 +119,14 @@ ChasterData data;
 ChasterClient cclient = ChasterClient();
 String lockCode;
 String line2;
+int8_t lastChasterH;
 int8_t lastChasterM;
+boolean lastCanOpen = false;
 String newSharedLock = "";
 String newSharedLockPwd = "";
 String chasterMessage = "";
 
-bool sdinit= false;
+bool sdinit = false;
 
 File myFile;
 
@@ -144,18 +148,18 @@ lockModeType lockMode = FREE;
 
 RTC_DS3231 rtc;
 
-const char* PARAM_INPUT_PIN = "pin";
-const char* PARAM_INPUT_TIME = "time";
-const char* PARAM_INPUT_NEWPIN = "newpin";
-const char* PARAM_INPUT_MESSAGE = "message";
+const char *PARAM_INPUT_PIN = "pin";
+const char *PARAM_INPUT_TIME = "time";
+const char *PARAM_INPUT_NEWPIN = "newpin";
+const char *PARAM_INPUT_MESSAGE = "message";
 
 // Replaces placeholder with button section in your web page
-String processor(const String& var){
+String processor(const String &var) {
   //Serial.println(var);
   return String();
 }
 
-void startScreen () {
+void startScreen() {
   Serial.println("startScreen()");
   epd.begin();
   Serial.println("ePaper display initialized");
@@ -168,7 +172,7 @@ void startScreen () {
   epd.setCursor(2, 20);
   epd.print("LockBox");
   epd.setCursor(2, 40);
-  epd.print("v0.5");
+  epd.print("v0.6");
   epd.display();
 }
 
@@ -212,7 +216,7 @@ void writeLog(String message) {
 
 String modeString() {
   String out;
-  switch(lockMode) {
+  switch (lockMode) {
     case FREE:
       out = "Free";
       break;
@@ -221,6 +225,9 @@ String modeString() {
       break;
     case LOCKED:
       out = "Locked";
+      if (data.canOpen) {
+        out += " *";
+      }
       break;
     case TIMER:
       out = "Timer";
@@ -261,7 +268,7 @@ void changeModeDisplay() {
   epd.print(modeString());
   epd.setTextSize(1);
   epd.setCursor(1, 64);
-  if (lidOpen && lockMode != FREE && lockMode != ONCE) {
+  if (lidOpen && lockMode != FREE && lockMode != ONCE && data.hygieneOpenAllowed != 1) {
     epd.print("PLEASE CLOSE LID!!");
   } else if (unlockAuthorizedLed || data.canBeUnlocked) {
     epd.print("Ready to open");
@@ -272,7 +279,7 @@ void changeModeDisplay() {
   } else if (!data.canBeUnlocked && data.isLockActive) {
     epd.print(line2);
   }
-   if (data.toVerify) {
+  if (data.toVerify) {
     epd.setTextSize(2);
     epd.setCursor(1, 120);
     epd.print(data.verificationCode);
@@ -305,19 +312,18 @@ void changeMode(lockModeType mode) {
     if (lockMode > 1) {
       unlockAuthorizedLed = false;
     }
-    preferences.putChar("lockmode", (uint8_t)mode );
+    preferences.putChar("lockmode", (uint8_t)mode);
     Serial.println("Status: " + modeString());
-    changeModeDisplay ();
+    changeModeDisplay();
   }
 }
 
-void writeLCD( String text) {
+void writeLCD(String text) {
   if (DISPLAY_DEBUG) {
-
   }
 }
 
-void printLines(uint8_t lstart, uint8_t * buffer) {
+void printLines(uint8_t lstart, uint8_t *buffer) {
   for (int l = 0; l < 2; l++) {
     uint8_t line[21];
     memset(line, 0x20, 20);
@@ -331,15 +337,14 @@ void printLines(uint8_t lstart, uint8_t * buffer) {
       }
     }
     String Str = (char *)line;
-
   }
 }
 
 void printDirectory(File dir, int numTabs) {
   while (true) {
 
-    File entry =  dir.openNextFile();
-    if (! entry) {
+    File entry = dir.openNextFile();
+    if (!entry) {
       // no more files
       break;
     }
@@ -371,8 +376,8 @@ void reconnect() {
       if (++tries > 5) break;
     }
     if (WiFi.status() == WL_CONNECTED) {
-      changeModeDisplay ();
-      Serial.println("Wifi Connected: " + WiFi.localIP() );
+      changeModeDisplay();
+      Serial.println("Wifi Connected: " + WiFi.localIP());
       wifiConnected = true;
     } else {
       Serial.println("Wifi Not Connectd");
@@ -380,27 +385,16 @@ void reconnect() {
   }
 }
 
-void startWifi () {
+void startWifi() {
   Serial.println("startWifi");
   int tries = 0;
+  wifiConnected = false;
   WiFi.begin(wifissid, wifipassword);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     if (++tries > 5) break;
   }
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(2000);
-    WiFi.disconnect();
-    delay(100);
-    WiFi.begin(wifissid, wifipassword);
-    Serial.println("Trying to connect");
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      if (++tries > 5) break;
-    }
-    if (++tries > 10) break;
-  }
-  wifiConnected = false;
+
   // Print local IP address and start web server
   if (WiFi.status() == WL_CONNECTED) {
     epd.setTextColor(EPD_BLACK);
@@ -412,10 +406,10 @@ void startWifi () {
     epd.setCursor(2, 40);
     epd.print("IP address: ");
     epd.setCursor(2, 60);
-    epd.print(WiFi.localIP() );
+    epd.print(WiFi.localIP());
     epd.display();
     wifiConnected = true;
-    Serial.println("Wifi Connected: " + WiFi.localIP() );
+    Serial.println("Wifi Connected");
   } else {
     epd.setTextColor(EPD_BLACK);
     epd.setFont(qfont);
@@ -426,8 +420,6 @@ void startWifi () {
     epd.display();
     Serial.println("Wifi Not Connectd");
   }
-
-
 }
 
 
@@ -447,9 +439,15 @@ void closeLock() {
   lockOpen = false;
 }
 
-void startNewTimer (unsigned long time, boolean once) {
+void temporaryOpen() {
+  Serial.println("TemporaryOpen");
+
+}
+
+void startNewTimer(unsigned long time, boolean once) {
   DateTime now = getTime();
-  startTimer = now.secondstime();;
+  startTimer = now.secondstime();
+  ;
   remainingTime = timerDuration = time;
   lastPrint = 0;
   closeLock();
@@ -462,7 +460,7 @@ void startNewTimer (unsigned long time, boolean once) {
   preferences.putULong("starttimer", startTimer);
 }
 
-void endTimer () {
+void endTimer() {
   if (lockMode == TIMERONCE) {
     changeMode(ONCE);
     writeLog("entered mode ONCE after end of timer");
@@ -488,17 +486,17 @@ String getStateString() {
   if (lockMode == TIMER || lockMode == TIMERONCE) {
     s += String(remainingTime);
   }
-  s+= ";";
+  s += ";";
   if (keyInBox) {
     s += "1";
   } else {
     s += "0";
   }
-  s+= ";";
-  s+= message;
-  s+= ";";
+  s += ";";
+  s += message;
+  s += ";";
   if (data.isLockActive) {
-    s+= "1";
+    s += "1";
   } else {
     s += "0";
   }
@@ -507,7 +505,7 @@ String getStateString() {
 
 void adjustNTP() {
   struct tm nowntp;
-  if(!getLocalTime(&nowntp)){
+  if (!getLocalTime(&nowntp)) {
     Serial.println("Failed to obtain time");
   }
   Serial.print("Time Adjust: ");
@@ -515,7 +513,7 @@ void adjustNTP() {
   Serial.print("nowntp.tm_year:");
   Serial.println(nowntp.tm_year);
   if (nowntp.tm_year >= 122) {
-    rtc.adjust(DateTime(nowntp.tm_year-100, nowntp.tm_mon+1, nowntp.tm_mday, nowntp.tm_hour, nowntp.tm_min, nowntp.tm_sec));
+    rtc.adjust(DateTime(nowntp.tm_year - 100, nowntp.tm_mon + 1, nowntp.tm_mday, nowntp.tm_hour, nowntp.tm_min, nowntp.tm_sec));
     needAdjust = 0;
   } else {
     needAdjust = 1;
@@ -528,10 +526,10 @@ DateTime getTime() {
     now = rtc.now();
   } else if (wifiConnected) {
     struct tm nowntp;
-    if(!getLocalTime(&nowntp)){
+    if (!getLocalTime(&nowntp)) {
       Serial.println("Failed to obtain time");
     }
-    now = DateTime(nowntp.tm_year-100, nowntp.tm_mon+1, nowntp.tm_mday, nowntp.tm_hour, nowntp.tm_min, nowntp.tm_sec);
+    now = DateTime(nowntp.tm_year - 100, nowntp.tm_mon + 1, nowntp.tm_mday, nowntp.tm_hour, nowntp.tm_min, nowntp.tm_sec);
   } else {
     now = DateTime(1907, 1, 1, 0, 0, 0);
   }
@@ -544,94 +542,145 @@ void doChasterAuth() {
   if (auth.refreshToken == "") {
     Serial.println("No refresh token found. Requesting through browser");
 
-    Serial.println( "Open browser at http:///lockbox.local\n");
+    Serial.println("Open browser at http:///lockbox.local\n");
 
       message = "connect to \nhttp://lockbox.local/auth";
 
-    changeModeDisplay();
+      changeModeDisplay();
 
-    while (auth.accessToken == "" && auth.refreshToken == "") {
-      delay(500);
-    }
-    if (auth.refreshToken != "") {
-      Serial.println("Saving refresh token in preferences");
-      preferences.putString("cRefreshToken", auth.refreshToken);
-    }
-    message = "";
-    changeModeDisplay();
+      while (auth.accessToken == "" && auth.refreshToken == "") {
+        delay(500);
+      }
+      if (auth.refreshToken != "") {
+        Serial.println("Saving refresh token in preferences");
+        preferences.putString("cRefreshToken", auth.refreshToken);
+      }
+      message = "";
+      changeModeDisplay();
   } else {
     Serial.println("Using refresh token found in preferences");
     code = auth.refreshToken;
     grantType = "refresh_token";
-    cclient.getToken(&auth, grantType, code);
+    int tokenRet = cclient.getToken(&auth, grantType, code);
     Serial.printf("Refresh token: %s\nAccess Token: %s\n", auth.refreshToken.c_str(), auth.accessToken.c_str());
-
   }
 }
 
 void updateChasterState(DateTime now) {
+  bool update = false;
+  if (lastToVerify != data.toVerify) {
+    lastToVerify = data.toVerify;
+    update = true;
+  }
+  if (lastHygieneOpenAllowed != data.hygieneOpenAllowed) {
+    lastHygieneOpenAllowed = data.hygieneOpenAllowed;
+    update = true;
+  }
   if (data.isLockActive) {
     chasterMessage = "Lock (" + lockCode + "):\n" + data.title;
     if (data.locked) {
       if (data.hygieneOpenAllowed == 1) {
-        if (!lidOpen) {
+        if (!lidOpen && lockMode != ONCE) {
           changeMode(ONCE);
+          update = false;
+        } else if (lidOpen) {
+          TimeSpan ts = now - data.openedAtDateTime;
+          int32_t diff = data.openingTime - ts.totalseconds();
+          if (diff <= 0) {
+             line2 = "TOO LATE !";
+            update = true;
+          } else {
+            TimeSpan ts2 = TimeSpan(diff);
+            String m = ts2.minutes() > 9 ? String(ts2.minutes()) : "0" + String(ts2.minutes());
+            String h = ts2.hours() > 0 ? String(ts2.hours()) + "h " : "";
+            line2 = h + m + "min" + " REMAINING!!";
+            update = true;
+          }
         }
       } else {
         if (data.canBeUnlocked && data.extensionsAllowUnlocking) {
           line2 = "Ready to unlock";
-          if (lastChasterM !=  97) {
+          if (lastChasterM != 97) {
             lastChasterM = 97;
-            changeModeDisplay();
+            update = true;
           }
 
         } else if (data.frozen && data.frozenAt < data.endDateTime && data.displayRemainingTime) {
           TimeSpan ts = data.endDateTime - data.frozenAt;
-          if (lastChasterM !=  ts.minutes()) {
+          if (lastChasterM != ts.minutes() && ts.days() == 0) {
             lastChasterM = ts.minutes();
-            String h = ts.hours() > 9 ? String(ts.hours()) : "0" + String(ts.hours()) ;
-            String m = ts.minutes() > 9 ? String(ts.minutes()) : "0" + String(ts.minutes()) ;
-            line2 = String(ts.days()) + "d " + h + ":" + m;
+            String h = ts.hours() > 9 ? String(ts.hours()) : "0" + String(ts.hours());
+            String m = ts.minutes() > 9 ? String(ts.minutes()) : "0" + String(ts.minutes());
+            line2 = h + ":" + m;
             line2 = "** " + line2 + " **";
-            changeModeDisplay();
+            update = true;
+          } else if(lastChasterH != ts.hours()) {
+            lastChasterM = ts.minutes();
+            lastChasterH = ts.hours();
+            String h = ts.hours() > 9 ? String(ts.hours()) : "0" + String(ts.hours());
+            line2 = String(ts.days()) + "d " + h + "h";
+            line2 = "** " + line2 + " **";
+            update = true;
           }
         } else if (now < data.endDateTime && data.displayRemainingTime) {
           TimeSpan ts = data.endDateTime - now;
-          if (lastChasterM !=  ts.minutes()) {
+          if (lastChasterM != ts.minutes() && ts.days() == 0) {
             lastChasterM = ts.minutes();
-            String h = ts.hours() > 9 ? String(ts.hours()) : "0" + String(ts.hours()) ;
-            String m = ts.minutes() > 9 ? String(ts.minutes()) : "0" + String(ts.minutes()) ;
-            line2 = String(ts.days()) + "d " + h + ":" + m;
-            changeModeDisplay();
+            String h = ts.hours() > 9 ? String(ts.hours()) : "0" + String(ts.hours());
+            String m = ts.minutes() > 9 ? String(ts.minutes()) : "0" + String(ts.minutes());
+            line2 = h + ":" + m;
+            update = true;
+          } else if(lastChasterH != ts.hours()) {
+            lastChasterM = ts.minutes();
+            lastChasterH = ts.hours();
+            String h = ts.hours() > 9 ? String(ts.hours()) : "0" + String(ts.hours());
+            line2 = String(ts.days()) + "d " + h + "h";
+            update = true;
           }
         } else if (!data.displayRemainingTime) {
           line2 = "??d ??:??";
-          if (lastChasterM !=  96) {
+          if (lastChasterM != 96) {
             lastChasterM = 96;
-            changeModeDisplay();
+            update = true;
           }
         } else if (!data.extensionsAllowUnlocking) {
           line2 = "Missing actions";
-          if (lastChasterM !=  99) {
+          if (lastChasterM != 99) {
             lastChasterM = 99;
-            changeModeDisplay();
+            update = true;
           }
         } else {
           line2 = "";
-          if (lastChasterM !=  98) {
+          if (lastChasterM != 98) {
             lastChasterM = 98;
-            changeModeDisplay();
+            update = true;
           }
         }
-        changeMode(LOCKED);
+        if (lockMode != LOCKED) {
+          changeMode(LOCKED);
+          update = false;
+        }
+      }
+      if (lastCanOpen != data.canOpen) {
+        lastCanOpen = data.canOpen;
+        update = true;
       }
     } else {
       line2 = "";
-      changeMode(FREE);
+      if (lockMode != FREE) {
+        changeMode(FREE);
+        update = false;
+      }
     }
   } else {
     line2 = "";
-    changeMode(FREE);
+    if (lockMode != FREE) {
+      changeMode(FREE);
+      update = false;
+    }
+  }
+  if (update == true) {
+    changeModeDisplay();
   }
 }
 
@@ -639,12 +688,12 @@ void setup() {
   Serial.begin(115200);
   Serial.println("setup");
 
-  if (! rtc.begin()) {
+  if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
     Serial.flush();
     needAdjust = 0;
   } else {
-    rtcFound=1;
+    rtcFound = 1;
   }
 
   if (rtc.lostPower() && rtcFound) {
@@ -682,14 +731,14 @@ void setup() {
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
 
-  debouncer.attach(BUTTON_PIN,INPUT_PULLUP); // Attach the debouncer to a pin with INPUT_PULLUP mode
-  debouncer.interval(25); // Use a debounce interval of 25 milliseconds
+  debouncer.attach(BUTTON_PIN, INPUT_PULLUP);  // Attach the debouncer to a pin with INPUT_PULLUP mode
+  debouncer.interval(25);                      // Use a debounce interval of 25 milliseconds
 
-  debouncerLid.attach(LID_PIN,INPUT_PULLUP); // Attach the debouncer to a pin with INPUT_PULLUP mode
-  debouncerLid.interval(25); // Use a debounce interval of 25 milliseconds
+  debouncerLid.attach(LID_PIN, INPUT_PULLUP);  // Attach the debouncer to a pin with INPUT_PULLUP mode
+  debouncerLid.interval(25);                   // Use a debounce interval of 25 milliseconds
   debouncerLid.update();
   if (debouncerLid.read() == HIGH) {
-    lidOpen=true;
+    lidOpen = true;
   }
   Serial.print("Initial Status :");
   Serial.println(modeString());
@@ -703,37 +752,45 @@ void setup() {
 
 
   startWifi();
+  Serial.println("Wifi started");
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServerValue);
+  Serial.println("time configured");
 
-  if(!MDNS.begin("lockbox")) {
+  if (!MDNS.begin("lockbox")) {
     Serial.println("Error starting mDNS");
     return;
   }
+  Serial.println("MDNS Started");
 
   MDNS.addService("http", "tcp", 80);
 
+  Serial.println("added MDNS port 80");
 
 
-  if(!SPIFFS.begin(true)){
+  if (!SPIFFS.begin(true)) {
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
 
+  Serial.println("SPIFFS Started");
+
+  Serial.println("RefreshToken from memory: " + auth.refreshToken);
+
   // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/index.html", String(), false, processor);
     });
-  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/index.html", String(), false, processor);
     });
-  server.on("/lockbox.js", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/lockbox.js", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/lockbox.js", String(), false, processor);
     });
-  server.on("/lockbox.css", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/lockbox.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/lockbox.css", String(), false, processor);
     });
-  server.on("/log", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/log", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /log");
       /*if (sdinit) {
       //std::lock_guard<std::mutex> lck(file_mutex);
@@ -756,7 +813,7 @@ void setup() {
       //}
     });
 
-  server.on("/clearlog", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/clearlog", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /clearlog");
       /*String pin;
         if (request->hasParam(PARAM_INPUT_PIN)) {
@@ -771,12 +828,12 @@ void setup() {
     });
 
 
-  server.on("/isAlive", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/isAlive", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /isAlive");
       request->send(200, "text/plain", getStateString());
     });
 
-  server.on("/changePin", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/changePin", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /changePin");
       String pin;
       String newPin;
@@ -795,12 +852,12 @@ void setup() {
       }
     });
 
-  server.on("/getState", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/getState", HTTP_GET, [](AsyncWebServerRequest *request) {
       //Serial.println("Web server got request for /getState");
       request->send(200, "text/plain", getStateString());
     });
 
-  server.on("/reset", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/reset", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /reset");
       String pin;
       if (request->hasParam(PARAM_INPUT_PIN)) {
@@ -817,7 +874,7 @@ void setup() {
       }
     });
 
-  server.on("/lock", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/lock", HTTP_GET, [](AsyncWebServerRequest *request) {
       String pin;
       if (request->hasParam(PARAM_INPUT_PIN)) {
         pin = request->getParam(PARAM_INPUT_PIN)->value();
@@ -832,7 +889,7 @@ void setup() {
       }
     });
 
-  server.on("/once", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/once", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /once");
       String pin;
       if (request->hasParam(PARAM_INPUT_PIN)) {
@@ -850,7 +907,7 @@ void setup() {
       }
     });
 
-  server.on("/free", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/free", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /free");
       String pin;
       if (request->hasParam(PARAM_INPUT_PIN)) {
@@ -868,7 +925,7 @@ void setup() {
       }
     });
 
-  server.on("/setTimer", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/setTimer", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /setTimer");
       String pin;
       String timer;
@@ -889,7 +946,7 @@ void setup() {
       }
     });
 
-  server.on("/setTimerOnce", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/setTimerOnce", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /setTimerOnce");
       String pin;
       String timer;
@@ -910,7 +967,7 @@ void setup() {
       }
     });
 
-  server.on("/setMessage", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/setMessage", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /setMessage");
       String pin;
       String msg;
@@ -931,7 +988,7 @@ void setup() {
       }
     });
 
-  server.on("/clearMessage", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/clearMessage", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /setMessage");
       String pin;
       String msg;
@@ -949,19 +1006,20 @@ void setup() {
       }
     });
 
-  server.on("/getMessage", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/getMessage", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /getMessage");
       request->send(200, "text/plain", message);
     });
 
-  server.on("/auth", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/auth", HTTP_GET, [](AsyncWebServerRequest *request) {
+      preferences.putString("cRefreshToken", "");
       cclient.chasterAuth(request);
     });
-  server.on("/callback", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/callback", HTTP_GET, [](AsyncWebServerRequest *request) {
       cclient.chasterAuthCallback(&auth, request);
     });
 
-  server.on("/chasterLock", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/chasterLock", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /chasterLock");
       if (request->hasParam("sharedlock")) {
         newSharedLock = request->getParam("sharedlock")->value();
@@ -977,9 +1035,12 @@ void setup() {
       request->send(200, "text/plain", "Lock queued");
     });
 
+  Serial.println("Web routes defined");
 
   // Start server
   server.begin();
+
+  Serial.println("Server started");
 
   Serial.println("Setup finished");
   writeLog("Box started");
@@ -993,7 +1054,7 @@ void loop() {
 
   if (now.hour() != lasthour) {
     lasthour = now.hour();
-    if(rtcFound && WiFi.status() == WL_CONNECTED) {
+    if (rtcFound && WiFi.status() == WL_CONNECTED) {
       if (firstRun == 0) {
         adjustNTP();
       } else {
@@ -1008,8 +1069,8 @@ void loop() {
       if (WiFi.status() == WL_CONNECTED) {
         wifiConnected = true;
         Serial.print("Wifi Now Connected: ");
-        Serial.println( WiFi.localIP() );
-        changeModeDisplay ();
+        Serial.println(WiFi.localIP());
+        changeModeDisplay();
         if (auth.refreshToken == "") {
           doChasterAuth();
         }
@@ -1017,20 +1078,20 @@ void loop() {
     }
 
     if (WiFi.status() != WL_CONNECTED) {
-      changeModeDisplay ();
+      changeModeDisplay();
       Serial.println("Wifi NOT Connected");
       reconnect();
     } else {
-      if (needAdjust == 1  && rtcFound) {
+      if (needAdjust == 1 && rtcFound) {
         adjustNTP();
       }
     }
   }
 
   if (lockMode == TIMER || lockMode == TIMERONCE) {
-    remainingTime = timerDuration + (startTimer - timeNow)*1000;
-    if(remainingTime > 0 && remainingTime < (3600 * 1000 * 100)) {
-      if ( remainingTime < lastPrint - 10000 ) {
+    remainingTime = timerDuration + (startTimer - timeNow) * 1000;
+    if (remainingTime > 0 && remainingTime < (3600 * 1000 * 100)) {
+      if (remainingTime < lastPrint - 10000) {
         String remain = remainString();
         int minutes = (remainingTime % (3600 * 1000)) / (60 * 1000);
         if (minutes != lastminutedisplayed) {
@@ -1058,7 +1119,7 @@ void loop() {
       Serial.println("New lock created with code " + lockCode);
       changeMode(LOCKED);
       newSharedLock = "";
-      lastUpdate=0;
+      lastUpdate = 0;
     }
   }
 
@@ -1088,28 +1149,43 @@ void loop() {
     }
   }
 
-  if (lockOpen && (unlockTimer + 5000) < millisNow) {
+  if (lockOpen && (unlockTimer + 3000) < millisNow) {
     closeLock();
   }
 
   if (lockMode == FREE || lockMode == ONCE) {
-    debouncer.update(); // Update the Bounce instance
-    if ( debouncer.fell() ) {  // Call code if button transitions from HIGH to LOW
+    debouncer.update();      // Update the Bounce instance
+    if (debouncer.fell()) {  // Call code if button transitions from HIGH to LOW
       unlock();
+    }
+  } else if (lockMode == LOCKED && data.canOpen) {
+    debouncer.update();
+    if(debouncer.read() == LOW && debouncer.currentDuration() > 10000) {
+      if (cclient.temporaryOpen(&data, &auth)) {
+        digitalWrite(LEDPIN, HIGH);
+        unlock();
+        lastUpdate -= 5000;
+      } else {
+        digitalWrite(LEDPIN, HIGH);
+        delay(500);
+        digitalWrite(LEDPIN, LOW);
+      }
     }
   }
 
-  debouncerLid.update(); // Update the Bounce instance
-  if ( debouncerLid.fell() ) {  // Call code if button transitions from HIGH to LOW
+  debouncerLid.update();      // Update the Bounce instance
+  if (debouncerLid.fell()) {  // Call code if button transitions from HIGH to LOW
     Serial.println("Lid Closed");
     writeLog("Lid Closed");
     digitalWrite(LEDPIN, LOW);
     lidOpen = false;
     if (data.isLockActive && data.hygieneOpenAllowed == 1) {
+      data.hygieneOpenAllowed = 0;
       lockCode = cclient.relock(&data, &auth);
       if (lockCode != "") {
         preferences.putString("lockCode", lockCode);
         Serial.println("Hygiene opening finished with code " + lockCode);
+        updateChasterState(now);
         changeMode(LOCKED);
       } else {
         Serial.println("Failed to relock");
@@ -1119,7 +1195,7 @@ void loop() {
       changeModeDisplay();
     }
   }
-  if ( debouncerLid.rose() ) {  // Call code if button transitions from LOW to HIGH
+  if (debouncerLid.rose()) {  // Call code if button transitions from LOW to HIGH
     Serial.println("Lid Opened");
     writeLog("Lid Opened");
     lidOpen = true;

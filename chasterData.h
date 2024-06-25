@@ -26,6 +26,7 @@ typedef struct ChasterData {
   String title;
   String lockId;
   String endDate;
+  String tempOpenId;
   DateTime endDateTime;
   DateTime frozenAt;
   uint32_t totalDuration;
@@ -39,4 +40,7 @@ typedef struct ChasterData {
   bool canBeUnlocked = false;
   String verificationCode;
   bool toVerify = false;
+  bool canOpen = false;
+  DateTime openedAtDateTime;
+  uint32_t openingTime;
 } ChasterData;
