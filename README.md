@@ -22,6 +22,7 @@ Fot this project I used:
  * 4 States: Locked, Locked with timer, Free, Once (free to open only once and will relock after)
  * Button on the box to open the lock
  * Screen to dispay status
+ * Can be battery powered (using Huzzah32 internal battery controller) to continue updating display and checking state for some time when unplugged (cannot open the box on battery, it needs to be plugged)
  * Integration with chaster.app :
    * The box can be linked to a Chaster.app account
    * In this mode, the state box reflects the state of the first unarchived lock of the account
