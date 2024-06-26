@@ -31,6 +31,7 @@ Fot this project I used:
    * If the Chaster.app lock is in state unlocked or temporary unlocked, the button can open the box
    * If the Chaster.app lock is not unlocked or temporary unlocked but a temporary unlock is possible, a long press (more than 10 seconds) will request a temporary unlock to Chaster.app and open the box
    * When temporary unlocked, the screen will display the remaining opening time allowed before getting a penalty
+   * Automatically relock on chaster when closing the box during a temporary opening
    * When a verification code is generated on Chaster.app for a new verification picture, the code is displayed in big on the screen so the wearer can take the picture with the box and doesn't need to write codes anymore 
 
 ## Build
