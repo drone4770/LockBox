@@ -32,7 +32,7 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
   DynamicJsonDocument doc(20480);
   String url = "https://api.chaster.app/locks";
 
-  client.setCACert(letsencrypt_root_ca);
+  client.setCACert(root_ca);
   http.useHTTP10(true);
   http.begin(client, url);
   http.addHeader("Authorization", "Bearer " + auth->accessToken);
@@ -224,7 +224,7 @@ String ChasterClient::relock(ChasterData *data, ChasterAuth *auth) {
   DynamicJsonDocument doc(2048);
   WiFiClientSecure client;
   HTTPClient http;
-  client.setCACert(letsencrypt_root_ca);
+  client.setCACert(root_ca);
 
   String url = "https://api.chaster.app/combinations/code";
 
@@ -278,7 +278,7 @@ boolean ChasterClient::temporaryOpen(ChasterData *data, ChasterAuth *auth) {
     DynamicJsonDocument doc(2048);
     WiFiClientSecure client;
     HTTPClient http;
-    client.setCACert(letsencrypt_root_ca);
+    client.setCACert(root_ca);
 
     String url = "https://api.chaster.app/locks/" + data->lockId + "/extensions/" + data->tempOpenId + "/action";
 
@@ -313,7 +313,7 @@ String ChasterClient::newlock(ChasterData *data, ChasterAuth *auth, String share
   DynamicJsonDocument doc(2048);
   WiFiClientSecure client;
   HTTPClient http;
-  client.setCACert(letsencrypt_root_ca);
+  client.setCACert(root_ca);
 
   String url = "https://api.chaster.app/combinations/code";
 
@@ -373,7 +373,7 @@ int ChasterClient::getToken(ChasterAuth *auth, String grantType, String code) {
   DynamicJsonDocument doc(2048);
   WiFiClientSecure client;
   HTTPClient http;
-  client.setCACert(letsencrypt_root_ca);
+  client.setCACert(root_ca);
   //https://accounts.chaster.com/api/token
   String url = "https://sso.chaster.app/auth/realms/app/protocol/openid-connect/token";
 
@@ -412,6 +412,7 @@ int ChasterClient::getToken(ChasterAuth *auth, String grantType, String code) {
   if (doc.containsKey("refresh_token")) {
     const char * str = doc["refresh_token"];
     auth->refreshToken = String(str);
+    Serial.println("Refresh Token: " + auth->refreshToken);
   }
   // "scope":"user-modify-playback-state user-read-playback-state user-read-currently-playing user-read-private String scope;
   if (doc.containsKey("scope")) {

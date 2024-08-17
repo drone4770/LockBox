@@ -31,7 +31,7 @@ private:
   void executeCallback();
 
   // root certificate for api.chaster.app
-  const char* letsencrypt_root_ca= \
+  const char* root_ca= \
     "-----BEGIN CERTIFICATE-----\n" \
     "MIICCTCCAY6gAwIBAgINAgPlwGjvYxqccpBQUjAKBggqhkjOPQQDAzBHMQswCQYD\n" \
     "VQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEUMBIG\n" \

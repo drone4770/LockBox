@@ -827,6 +827,20 @@ void setup() {
         }*/
     });
 
+  server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
+      Serial.println("Web server got request for /restart");
+      /*String pin;
+        if (request->hasParam(PARAM_INPUT_PIN)) {
+        pin = request->getParam(PARAM_INPUT_PIN)->value();
+        }
+        if (strcmp(securitypin.c_str(), pin.c_str()) == 0) {
+        SD.remove(FILE_NAME);*/
+      request->send(200, "text/plain", "restart");
+      ESP.restart();
+      /*} else {
+        request->send(403, "text/plain", "Forbidden");
+        }*/
+    });
 
   server.on("/isAlive", HTTP_GET, [](AsyncWebServerRequest *request) {
       Serial.println("Web server got request for /isAlive");
@@ -1017,6 +1031,8 @@ void setup() {
     });
   server.on("/callback", HTTP_GET, [](AsyncWebServerRequest *request) {
       cclient.chasterAuthCallback(&auth, request);
+      Serial.println("received new refreshToken" + auth.refreshToken);
+      preferences.putString("cRefreshToken", auth.refreshToken);
     });
 
   server.on("/chasterLock", HTTP_GET, [](AsyncWebServerRequest *request) {
