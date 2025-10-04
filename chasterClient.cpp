@@ -1,4 +1,5 @@
 //#include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include "ChasterClient.h"
 #include <ESPAsyncWebServer.h>
@@ -20,6 +21,8 @@ ChasterClient::ChasterClient() {
   this->authCode = "";
   this->redirectUri = "http%3A%2F%2Flockbox.local%2Fcallback";
 }
+
+
 
 uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
   level = 0;
@@ -98,6 +101,9 @@ uint16_t ChasterClient::update(ChasterData *data, ChasterAuth *auth) {
         int yr, mnth, d, h, m, s, ms;
         sscanf( str, "%4d-%2d-%2dT%2d:%2d:%2d.%3dZ", &yr, &mnth, &d, &h, &m, &s, &ms);
         data->endDateTime = DateTime(yr, mnth, d, h, m, s);
+        TimeSpan gts = TimeSpan(data->gmtplus * 3600);
+        DateTime ed = data->endDateTime + gts;
+        sprintf( data->endDateStr, "%02d.%02d.%4d %02d:%02d", ed.day(), ed.month(), ed.year(), ed.hour(), ed.minute());
       }
     }
     if (obj.containsKey("canBeUnlocked")) {

@@ -125,6 +125,7 @@ boolean lastCanOpen = false;
 String newSharedLock = "";
 String newSharedLockPwd = "";
 String chasterMessage = "";
+uint8_t nowifi_count = 0;
 
 bool sdinit = false;
 
@@ -256,6 +257,19 @@ String remainString() {
   return remain;
 }
 
+const char* wl_status_to_string(wl_status_t status) {
+  switch (status) {
+    case WL_NO_SHIELD: return "WL_NO_SHIELD";
+    case WL_IDLE_STATUS: return "WL_IDLE_STATUS";
+    case WL_NO_SSID_AVAIL: return "WL_NO_SSID_AVAIL";
+    case WL_SCAN_COMPLETED: return "WL_SCAN_COMPLETED";
+    case WL_CONNECTED: return "WL_CONNECTED";
+    case WL_CONNECT_FAILED: return "WL_CONNECT_FAILED";
+    case WL_CONNECTION_LOST: return "WL_CONNECTION_LOST";
+    case WL_DISCONNECTED: return "WL_DISCONNECTED";
+  }
+}
+
 void changeModeDisplay() {
   epd.setTextWrap(false);
 
@@ -286,7 +300,7 @@ void changeModeDisplay() {
   } else if (!wifiConnected) {
     epd.setTextSize(1);
     epd.setCursor(1, 120);
-    epd.print("No WiFi");
+    epd.print(wl_status_to_string(WiFi.status()));
   } else if (data.isLockActive) {
     epd.setFont(tfont);
     epd.setTextWrap(true);
@@ -514,10 +528,13 @@ void adjustNTP() {
   Serial.println(nowntp.tm_year);
   if (nowntp.tm_year >= 122) {
     rtc.adjust(DateTime(nowntp.tm_year - 100, nowntp.tm_mon + 1, nowntp.tm_mday, nowntp.tm_hour, nowntp.tm_min, nowntp.tm_sec));
+    summerTime(DateTime(nowntp.tm_year - 100, nowntp.tm_mon + 1, nowntp.tm_mday, nowntp.tm_hour, nowntp.tm_min, nowntp.tm_sec));
     needAdjust = 0;
   } else {
     needAdjust = 1;
   }
+  lastChasterH = 66;
+  lastChasterM = 66;
 }
 
 DateTime getTime() {
@@ -577,9 +594,9 @@ void updateChasterState(DateTime now) {
     update = true;
   }
   if (data.isLockActive) {
-    chasterMessage = "Lock (" + lockCode + "):\n" + data.title;
     if (data.locked) {
       if (data.hygieneOpenAllowed == 1) {
+        chasterMessage = "(ends " + String(data.endDateStr) + ")\n" + data.title;
         if (!lidOpen && lockMode != ONCE) {
           changeMode(ONCE);
           update = false;
@@ -606,6 +623,7 @@ void updateChasterState(DateTime now) {
           }
 
         } else if (data.frozen && data.frozenAt < data.endDateTime && data.displayRemainingTime) {
+          chasterMessage = "(ends " + String(data.endDateStr) + ")\n" + data.title;
           TimeSpan ts = data.endDateTime - data.frozenAt;
           if (lastChasterM != ts.minutes() && ts.days() == 0) {
             lastChasterM = ts.minutes();
@@ -623,6 +641,7 @@ void updateChasterState(DateTime now) {
             update = true;
           }
         } else if (now < data.endDateTime && data.displayRemainingTime) {
+          chasterMessage = "(ends " + String(data.endDateStr) + ")\n" + data.title;
           TimeSpan ts = data.endDateTime - now;
           if (lastChasterM != ts.minutes() && ts.days() == 0) {
             lastChasterM = ts.minutes();
@@ -638,6 +657,7 @@ void updateChasterState(DateTime now) {
             update = true;
           }
         } else if (!data.displayRemainingTime) {
+          chasterMessage = "(ends ??.??.???? ??:??)\n" + data.title;
           line2 = "??d ??:??";
           if (lastChasterM != 96) {
             lastChasterM = 96;
@@ -683,6 +703,39 @@ void updateChasterState(DateTime now) {
     changeModeDisplay();
   }
 }
+
+
+void summerTime(DateTime now) {
+  uint8_t last_sunday_march = 0;
+  uint8_t day = 31;
+  while (last_sunday_march == 0) {
+    DateTime t = DateTime(now.year(), 3, day, 3, 0, 0);
+    if (t.dayOfTheWeek() == 0) {
+      last_sunday_march = day;
+    } else {
+      day--;
+    }
+  }
+  uint8_t last_sunday_october = 0;
+  day = 31;
+  while (last_sunday_october == 0) {
+    DateTime t = DateTime(now.year(), 10, day, 3, 0, 0);
+    if (t.dayOfTheWeek() == 0) {
+      last_sunday_october = day;
+    } else {
+      day--;
+    }
+  }
+  DateTime start_dst = DateTime(now.year(), 3, last_sunday_march, 3, 0, 0);
+  DateTime end_dst = DateTime(now.year(), 10, last_sunday_october, 3, 0, 0);
+  if (now >= start_dst && now <= end_dst) {
+    data.gmtplus = 2;
+  } else {
+    data.gmtplus = 1;
+  }
+  Serial.println("gmtplus " + String(data.gmtplus));
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -747,7 +800,7 @@ void setup() {
   pinMode(outputrelay, OUTPUT);
   // Set outputs to LOW
   digitalWrite(outputrelay, HIGH);
-
+  
   startScreen();
 
 
@@ -1077,6 +1130,7 @@ void loop() {
         firstRun = 0;
       }
     }
+    summerTime(now);
   }
   if (now.minute() != lastminute) {
     lastminute = now.minute();
@@ -1089,7 +1143,13 @@ void loop() {
         changeModeDisplay();
         if (auth.refreshToken == "") {
           doChasterAuth();
+          lastChasterH = 66;
+          lastChasterM = 66;
         }
+      } else if (nowifi_count > 15) {
+        ESP.restart();
+      } else {
+        nowifi_count++;
       }
     }
 
@@ -1143,6 +1203,8 @@ void loop() {
     if (auth.refreshToken != "" && auth.accessToken == "") {
       Serial.println("need token refresh");
       doChasterAuth();
+      lastChasterH = 66;
+      lastChasterM = 66;
       lastUpdate = millisNow;
     } else if (auth.accessToken != "" && securitypin == "1234") {
       Serial.println("update");

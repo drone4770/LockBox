@@ -26,6 +26,7 @@ typedef struct ChasterData {
   String title;
   String lockId;
   String endDate;
+  char endDateStr[17];
   String tempOpenId;
   DateTime endDateTime;
   DateTime frozenAt;
@@ -43,4 +44,5 @@ typedef struct ChasterData {
   bool canOpen = false;
   DateTime openedAtDateTime;
   uint32_t openingTime;
+  uint8_t gmtplus = 0;
 } ChasterData;
